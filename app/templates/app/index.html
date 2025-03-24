@@ -1,0 +1,138 @@
+{% extends "app/base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto text-center">
+            <h1 class="display-4 mb-3">Welcome to Mini Blog</h1>
+            <p class="lead text-muted">Discover stories, thinking, and expertise from writers on any topic.</p>
+            {% if user.is_authenticated %}
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{% url 'app:blog-create' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus-circle me-2"></i>Write a Story
+                </a>
+                <a href="{% url 'app:blog-list' %}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-book-reader me-2"></i>Start Reading
+                </a>
+            </div>
+            {% else %}
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{% url 'app:blog-list' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-book-reader me-2"></i>Start Reading
+                </a>
+                <a href="{% url 'login' %}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-sign-in-alt me-2"></i>Login to Write
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Latest Blog Posts -->
+    <section class="latest-posts">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="h3">Latest Blog Posts</h2>
+            <a href="{% url 'app:blog-list' %}" class="btn btn-outline-primary">
+                View All <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+        </div>
+
+        <div class="row g-4">
+            {% for blog in latest_blogs %}
+            <div class="col-md-6 col-lg-4">
+                <article class="card h-100 blog-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ blog.author.profile_picture.url }}" 
+                                     alt="{{ blog.author.user.username }}"
+                                     class="rounded-circle me-2"
+                                     style="width: 40px; height: 40px; object-fit: cover;">
+                                <div>
+                                    <h6 class="mb-0">
+                                        <a href="{% url 'app:author-detail' blog.author.pk %}" class="text-decoration-none">
+                                            {{ blog.author.user.get_full_name|default:blog.author.user.username }}
+                                        </a>
+                                    </h6>
+                                    <small class="text-muted">{{ blog.post_date|date:"M d, Y" }}</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h3 class="card-title h5 mb-3">
+                            <a href="{% url 'app:blog-detail' blog.pk %}" class="text-decoration-none text-dark">
+                                {{ blog.title }}
+                            </a>
+                        </h3>
+
+                        <p class="card-text text-muted mb-3">
+                            {{ blog.content|truncatewords:30 }}
+                        </p>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-light text-dark">
+                                <i class="fas fa-comments me-1"></i>
+                                {{ blog.comment_set.count }} Comments
+                            </span>
+                            <a href="{% url 'app:blog-detail' blog.pk %}" class="btn btn-outline-primary btn-sm">
+                                Read More <i class="fas fa-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </article>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <div class="empty-state">
+                    <i class="fas fa-newspaper fa-3x text-muted mb-3"></i>
+                    <h3>No Blog Posts Yet</h3>
+                    <p class="text-muted">Be the first one to share your thoughts!</p>
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'app:blog-create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus-circle me-2"></i>Create First Post
+                    </a>
+                    {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login to Post
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+<style>
+    .blog-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .blog-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .blog-card .card-title a:hover {
+        color: var(--primary-color) !important;
+    }
+
+    .empty-state {
+        padding: 3rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .badge {
+        padding: 0.5em 1em;
+        font-weight: 500;
+    }
+</style>
+{% endblock %} 

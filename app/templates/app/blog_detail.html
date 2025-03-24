@@ -1,0 +1,345 @@
+{% extends "app/base.html" %}
+
+{% block title %}{{ blog.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Back Button -->
+            <div class="mb-4">
+                <a href="{% url 'app:blog-list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Blogs
+                </a>
+            </div>
+
+            <!-- Blog Post -->
+            <article class="card">
+                <div class="card-body">
+                    <!-- Blog Header -->
+                    <header class="blog-header mb-4">
+                        <h1 class="display-4 mb-3">{{ blog.title }}</h1>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ blog.author.profile_picture.url }}" 
+                                     alt="{{ blog.author.user.username }}"
+                                     class="rounded-circle me-3"
+                                     style="width: 48px; height: 48px; object-fit: cover;">
+                                <div>
+                                    <h5 class="mb-0">
+                                        <a href="{% url 'app:author-detail' blog.author.pk %}" class="text-decoration-none text-primary">
+                                            {{ blog.author.user.get_full_name|default:blog.author.user.username }}
+                                        </a>
+                                    </h5>
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar-alt me-1"></i>
+                                        {{ blog.post_date|date:"F d, Y" }}
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                {% if user.is_authenticated %}
+                                <button id="likeButton" 
+                                        class="btn btn-outline-danger me-2 {% if user in blog.likes.all %}active{% endif %}"
+                                        data-blog-id="{{ blog.pk }}"
+                                        onclick="toggleLike(this)">
+                                    <i class="fas fa-heart me-1"></i>
+                                    <span id="likeCount">{{ blog.get_like_count }}</span>
+                                </button>
+                                {% endif %}
+                                <button id="listenButton" class="btn btn-outline-primary me-2" onclick="toggleAudio()">
+                                    <i class="fas fa-volume-up me-1"></i>Listen
+                                </button>
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-comments me-1"></i>
+                                    {{ blog.comment_set.count }} Comments
+                                </span>
+                                {% if blog.author.user == request.user %}
+                                <a href="{% url 'app:blog-delete' blog.pk %}" class="btn btn-outline-danger btn-sm ms-2">
+                                    <i class="fas fa-trash-alt"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </header>
+
+                    <!-- Audio Player -->
+                    <div id="audioPlayerContainer" class="mb-4" style="display: none;">
+                        <audio id="audioPlayer" controls class="w-100">
+                            <source src="{% url 'app:blog-audio' blog.pk %}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+
+                    <!-- Blog Content -->
+                    <div class="blog-content">
+                        {{ blog.content|linebreaks }}
+                    </div>
+                </div>
+            </article>
+
+            <!-- Comments Section -->
+            <section class="comments-section mt-5">
+                <h2 class="h3 mb-4">Comments</h2>
+
+                <!-- Comment Form -->
+                {% if user.is_authenticated %}
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form method="post" action="{% url 'app:comment-create' blog.pk %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="id_content" class="form-label">Add a comment</label>
+                                <textarea name="content" id="id_content" class="form-control" rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Post Comment
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Please <a href="{% url 'login' %}" class="alert-link">login</a> to post comments.
+                </div>
+                {% endif %}
+
+                <!-- Comments List -->
+                {% if blog.comment_set.exists %}
+                <div class="comments-list">
+                    {% for comment in blog.comment_set.all %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ comment.user.author.profile_picture.url }}" 
+                                         alt="{{ comment.user.username }}"
+                                         class="rounded-circle me-2"
+                                         style="width: 32px; height: 32px; object-fit: cover;">
+                                    <div>
+                                        <h6 class="mb-0">{{ comment.user.username }}</h6>
+                                        <small class="text-muted">
+                                            {{ comment.post_date|date:"F d, Y" }}
+                                        </small>
+                                    </div>
+                                </div>
+                                {% if comment.user == request.user %}
+                                <a href="{% url 'app:comment-delete' comment.pk %}" class="btn btn-outline-danger btn-sm">
+                                    <i class="fas fa-trash-alt"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                            <p class="card-text mb-0">{{ comment.content }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                    <p class="text-muted mb-0">No comments yet. Be the first to comment!</p>
+                </div>
+                {% endif %}
+            </section>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="position-sticky" style="top: 2rem;">
+                <!-- Author Card -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">About the Author</h5>
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{{ blog.author.profile_picture.url }}" 
+                                 alt="{{ blog.author.user.username }}"
+                                 class="rounded-circle me-3"
+                                 style="width: 64px; height: 64px; object-fit: cover;">
+                            <div>
+                                <h6 class="mb-1">{{ blog.author.user.get_full_name|default:blog.author.user.username }}</h6>
+                                <p class="text-muted mb-0">
+                                    <i class="fas fa-pencil-alt me-1"></i>
+                                    {{ blog.author.blog_set.count }} Posts
+                                </p>
+                            </div>
+                        </div>
+                        <p class="card-text">{{ blog.author.bio|default:"No bio available." }}</p>
+                        <a href="{% url 'app:author-detail' blog.author.pk %}" class="btn btn-outline-primary btn-sm">
+                            View Profile
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Share Card -->
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Share this Post</h5>
+                        <div class="d-flex gap-2">
+                            <a href="#" class="btn btn-outline-primary flex-grow-1">
+                                <i class="fab fa-facebook-f"></i>
+                            </a>
+                            <a href="#" class="btn btn-outline-info flex-grow-1">
+                                <i class="fab fa-twitter"></i>
+                            </a>
+                            <a href="#" class="btn btn-outline-success flex-grow-1">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                            <a href="#" class="btn btn-outline-secondary flex-grow-1">
+                                <i class="fas fa-link"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleLike(button) {
+    const blogId = button.dataset.blogId;
+    const likeCount = document.getElementById('likeCount');
+    
+    fetch(`/blog/${blogId}/like/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.liked) {
+            button.classList.add('active');
+        } else {
+            button.classList.remove('active');
+        }
+        likeCount.textContent = data.likeCount;
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function toggleAudio() {
+    const audioContainer = document.getElementById('audioPlayerContainer');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const listenButton = document.getElementById('listenButton');
+    
+    if (audioContainer.style.display === 'none') {
+        audioContainer.style.display = 'block';
+        listenButton.innerHTML = '<i class="fas fa-volume-mute me-1"></i>Hide Audio';
+        if (audioPlayer.paused) {
+            audioPlayer.play();
+        }
+    } else {
+        audioContainer.style.display = 'none';
+        listenButton.innerHTML = '<i class="fas fa-volume-up me-1"></i>Listen';
+        audioPlayer.pause();
+    }
+}
+</script>
+
+<style>
+    .blog-content {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: var(--text-primary);
+    }
+
+    .blog-content p {
+        margin-bottom: 1.5rem;
+    }
+
+    .comments-section {
+        position: relative;
+    }
+
+    .comments-section::before {
+        content: '';
+        position: absolute;
+        top: -2rem;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, 
+            rgba(0,0,0,0), 
+            rgba(0,0,0,0.1), 
+            rgba(0,0,0,0));
+    }
+
+    .comment-form textarea {
+        resize: vertical;
+    }
+
+    .comments-list .card {
+        transition: transform 0.2s ease;
+    }
+
+    .comments-list .card:hover {
+        transform: translateX(5px);
+    }
+
+    .position-sticky {
+        top: 2rem;
+    }
+
+    @media (max-width: 991.98px) {
+        .position-sticky {
+            position: static !important;
+        }
+    }
+
+    #audioPlayerContainer {
+        background: var(--background-soft);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin: 1rem 0;
+    }
+
+    #audioPlayer {
+        width: 100%;
+        height: 40px;
+    }
+
+    #listenButton {
+        transition: all 0.3s ease;
+    }
+
+    #listenButton:hover {
+        transform: translateY(-1px);
+    }
+
+    #likeButton {
+        transition: all 0.3s ease;
+    }
+
+    #likeButton:hover {
+        transform: scale(1.05);
+    }
+
+    #likeButton.active {
+        background-color: var(--bs-danger);
+        color: white;
+    }
+
+    #likeButton.active:hover {
+        background-color: var(--bs-danger-dark);
+    }
+</style>
+{% endblock %} 
