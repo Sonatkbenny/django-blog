@@ -24,9 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-xux@aa_=2!paq(tl5td%myg*#cunx&6apfp5_emm02r560a6xt'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS = ['miniblog-e0hmbug5ezdnc7fw.centralus-01.azurewebsites.net','127.0.0.1','localhost'] 
 
 
 # Application definition
